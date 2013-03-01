@@ -35,11 +35,13 @@ class AppBuilder < Rails::AppBuilder
     configure_database_cleaner
     configure_strong_parameters
     rake 'db:create'
+    generate "simple_form:install", "--bootstrap"
     setup_twitter_bootstrap
     setup_flash_messages
     configure_action_mailer
     generate_home_controller
     configure_devise
+    rake 'db:migrate'
     configure_rvm_gemset
     git :init
   end
@@ -312,6 +314,8 @@ class AppBuilder < Rails::AppBuilder
       create_file "#{styles_dir}/application.css.scss", application_css_content
       create_file "#{styles_dir}/bootstrap_overrides.css.scss", bootstrap_overrides
       create_file "app/views/layouts/application.html.erb", application_layout
+      create_file "app/views/application/_top_bar_links.html.erb", top_bar_links_partial
+      create_file "app/views/application/_devise_links.html.erb", devise_links_partial
       inject_into_file "app/assets/javascripts/application.js", 
                        "//= require bootstrap \n",
                        before: "//= require_tree ."
@@ -358,7 +362,7 @@ class AppBuilder < Rails::AppBuilder
         }
 
         h1,h2, h3, h4 {
-          font-weight: normal;
+          font-weight: 300;
         }
 
         footer {
@@ -372,7 +376,7 @@ class AppBuilder < Rails::AppBuilder
           color: #0063dc;
         }
 
-        @import "bootstrap-responsive"
+        /* @import "bootstrap-responsive" */
       RUBY
     end
 
@@ -392,15 +396,9 @@ class AppBuilder < Rails::AppBuilder
           <div class='navbar navbar-static-top'>
             <div class='navbar-inner'>
               <div class='container'>
-                <a href='' class='brand'>AppName</a>
-                <ul class='nav'>
-                  <li>
-                    <a href=''>Link</a>
-                  </li>
-                  <li>
-                    <a href=''>Link</a>
-                  </li>
-                </ul>
+                <a href='#' class='brand'><%= Rails.application.class.parent_name %></a>
+                <%= render 'application/top_bar_links' %>
+                <%= render 'application/devise_links' %>
               </div>
             </div>
           </div>
@@ -409,6 +407,7 @@ class AppBuilder < Rails::AppBuilder
             <div class='content'>
               <div class='row'>
                 <div class='span12'>
+                  <%= render 'application/flashes' %>
                   <%= yield %>
                 </div>
               </div>
@@ -429,6 +428,59 @@ class AppBuilder < Rails::AppBuilder
         </body>
         </html>
       RUBY
+    end
+
+    def top_bar_links_partial
+      <<-ERB.strip_heredoc
+        <ul class="nav">
+          <li><a href="#">Link</a></li>
+          <li><a href="#">Link</a></li>
+        </ul>
+      ERB
+    end
+
+    def devise_links_partial
+      <<-ERB.strip_heredoc
+        <ul class="nav pull-right">
+          <% if user_signed_in? %>
+            <li class="dropdown">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                <i class="icon-user"></i>
+                <span class="hidden-phone"><%= current_user.email %></span>
+                <b class="caret"></b>
+              </a>
+              <ul class="dropdown-menu">
+                <li>
+                  <%= link_to edit_user_registration_path do %>
+                    <i class="icon-edit"></i>
+                    Edit Account
+                  <% end %>
+                </li>
+                <li class="divider"></li>
+                <li>
+                  <%= link_to destroy_user_session_path, method: 'delete' do %>
+                    <i class="icon-off"></i>
+                    Logout
+                  <% end %>
+                </li>
+              </ul>
+          </li>
+          <% else %>
+            <li>
+              <%= link_to new_user_session_path  do %>
+                <i class="icon-lock"></i>
+                Log in
+              <% end %>
+            </li>
+            <li>
+              <%= link_to new_user_registration_path do %>
+                <i class="icon-pencil"></i>
+                Register
+              <% end %>
+            </li>
+          <% end %>
+        </ul>
+      ERB
     end
 
 end
