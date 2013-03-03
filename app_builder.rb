@@ -31,9 +31,13 @@ class AppBuilder < Rails::AppBuilder
 
   # The last step: postprocess: should occur after bundle install
   def postprocess
+    strong_params = false
     configure_rspec
     configure_database_cleaner
-    configure_strong_parameters
+    if yes?("Do you want to configure 'Strong Parameters' (y/n)")
+      configure_strong_parameters
+      strong_params = true
+    end
     rake 'db:create'
     generate "simple_form:install", "--bootstrap"
     setup_twitter_bootstrap
@@ -41,6 +45,7 @@ class AppBuilder < Rails::AppBuilder
     configure_action_mailer
     generate_home_controller
     configure_devise
+    setup_devise_strong_parameters if strong_params
     rake 'db:migrate'
     configure_rvm_gemset
     git :init
@@ -321,9 +326,42 @@ class AppBuilder < Rails::AppBuilder
                        before: "//= require_tree ."
     end
 
+    def setup_devise_strong_parameters
+      controller_dir = 'app/controllers/users'
+      empty_directory "#{controller_dir}"
+      add_file "#{controller_dir}/passwords_controller.rb", passwords_controller
+      add_file "#{controller_dir}/registrations_controller.rb", registrations_controller
+      devise_custom = <<-RUBY.strip_heredoc
+       , controllers: { registrations: "users/registrations", passwords: "users/passwords"}
+      RUBY
+      inject_into_file 'config/routes.rb', devise_custom, after: "devise_for :users"
+    end
+
     def configure_rvm_gemset
       create_file '.rvmrc', 
         "rvm --rvmrc --create ruby-#{RUBY_VERSION}-p#{RUBY_PATCHLEVEL}@#{app_name}"
+    end
+
+    def passwords_controller
+      <<-RUBY.strip_heredoc
+        class Users::PasswordsController < Devise::PasswordsController
+          def resource_params
+            params.require(:user).permit(:email, :password, :password_confirmation)
+          end
+          private :resource_params
+        end
+      RUBY
+    end
+
+    def registrations_controller
+      <<-RUBY.strip_heredoc
+        class Users::RegistrationsController < Devise::RegistrationsController
+          def resource_params
+            params.require(:user).permit(:name, :email, :password, :password_confirmation)
+          end
+          private :resource_params
+        end
+      RUBY
     end
 
     def application_css_content
