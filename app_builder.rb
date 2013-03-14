@@ -8,7 +8,7 @@ class AppBuilder < Rails::AppBuilder
   end
 
   def readme
-    create_file "README.md", "The #{app_name} Project."
+    create_file "README.md", read_me_content
   end
 
   def gemfile
@@ -157,6 +157,24 @@ class AppBuilder < Rails::AppBuilder
         generate 'devise:views'
       end
       generate 'devise', 'User'
+    end
+
+    def read_me_content
+      <<-RUBY.strip_heredoc
+      The #{app_name} Application.
+
+        Working on the project
+         1.Forms ('simple_form' + 'bootstrap')
+          Inside views, use the 'simple_form_for' with one of the Bootstrap form
+          classes, '.form-horizontal', '.form-inline', '.form-search' or '.form-vertical',
+          as the following:
+
+            = simple_form_for(@user, :html => {:class => 'form-horizontal' }) do |form|
+
+         2.Devise gem
+          To customize, use database migrations.
+
+      RUBY
     end
 
     def mailer_config
@@ -324,6 +342,9 @@ class AppBuilder < Rails::AppBuilder
       inject_into_file "app/assets/javascripts/application.js", 
                        "//= require bootstrap \n",
                        before: "//= require_tree ."
+      inject_into_file "app/assets/javascripts/application.js", 
+                       "//= require bootstrap-datepicker \n",
+                       before: "//= require_tree ."
     end
 
     def setup_devise_strong_parameters
@@ -371,20 +392,10 @@ class AppBuilder < Rails::AppBuilder
        * all the files listed or referenced below
        *
        *= require_self
+       *= require bootstrap-datepicker
        *= require_tree .
        */
 
-      .content {
-          background-color: #fff;
-          padding: 20px;
-          margin: 0 -20px; /* negative indent the amount of the padding to maintain the grid system */
-          /* -webkit-border-radius: 0 0 6px 6px;
-          -moz-border-radius: 0 0 6px 6px;
-          border-radius: 0 0 6px 6px; */
-          -webkit-box-shadow: 0 1px 2px rgba(0,0,0,.15);
-          -moz-box-shadow: 0 1px 2px rgba(0,0,0,.15);
-          box-shadow: 0 1px 2px rgba(0,0,0,.15);
-      }
       RUBY
     end
 
@@ -394,6 +405,14 @@ class AppBuilder < Rails::AppBuilder
         $navbarLinkColor: #59a3fc;
 
         @import "bootstrap";
+
+        .content {
+            background-color: #fff;
+            padding: 20px;
+            margin: 0 -20px; /* negative indent the amount of the padding to maintain the grid system */
+            /* @include border-radius(0 0 6px 6px); */
+            @include box-shadow(0 1px 2px rgba(0,0,0,0.15));
+        }
 
         body { 
           background-color: #efd;
@@ -412,6 +431,11 @@ class AppBuilder < Rails::AppBuilder
 
         a.comp-link {
           color: #0063dc;
+        }
+
+        .center {
+          float: none;
+          margin: 0 auto;
         }
 
         /* @import "bootstrap-responsive" */
@@ -449,10 +473,10 @@ class AppBuilder < Rails::AppBuilder
                   <%= yield %>
                 </div>
               </div>
-              <footer>
-                <p>
+              <footer class="clearfix">
+                <p class="pull-right">
                   Designed and developed by:
-                  <a href="www.twicelift.com" class="comp-link">
+                  <a href="http://www.twicelift.com" class="comp-link">
                   TWICELIFT
                   </a>
                   (Pty) Ltd. 
